@@ -6,8 +6,8 @@ const PORT = 8080; // default port 8080
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs")
 
-function generateRandomString() {
-
+function generateRandomString(longURL) {
+  return Math.random().toString(20).substr(2, 6);
 }
 
 const urlDatabase = {
@@ -37,8 +37,10 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  let shortURL = generateRandomString(req.body.longURL);
+  urlDatabase[shortURL] = req.body.longURL;  // Log the POST request body to the console
+  console.log(urlDatabase);
+  res.redirect(`/urls/${shortURL}`);         // Respond with 'Ok' (we will replace this)
 });
 
 app.get("/urls/:shortURL", (req, res) => {
