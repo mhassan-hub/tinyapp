@@ -3,35 +3,11 @@ const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; // default port 8080
-const {generateRandomString, getUserIdByEmail} = require('./Helpers/helper_functions');
+const {generateRandomString, getUserIdByEmail, urlsForUserID} = require('./Helpers/helper_functions');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.set("view engine", "ejs");
-
-// const generateRandomString = function() {
-//   return Math.random().toString(20).substr(2, 6);
-// };
-
-// const getUserIdByEmail = function (email, users) {
-//   for (let id in users) {
-//     if (email === users[id].email) {
-//       return id;
-//     }
-//   }
-// };
-
-const urlsForUserID = function (email, users, urlDatabase) {
-  const result = {};
-  const id = getUserIdByEmail(email, users);
-
-  for (const url in urlDatabase) {
-    if (url.userID === email) {
-      result[url] = urlDatabase[url];
-    }
-  }
-  return result;
-};
 
 const users = {
   "userRandomID": {
@@ -69,14 +45,20 @@ app.get("/", (req, res) => {
 /*-----------/URLS/-------------*/
 
 app.get("/urls", (req, res) => {
-  const userURL = urlsForUserID(req.cookies["user_id"], users, urlDatabase)
+  const userURL = urlsForUserID(req.cookies.users_id, urlDatabase);
+  console.log(req.cookies.users_id);
+  console.log('----');
+  console.log(userURL);
 
+  if (JSON.stringify(userURL) === JSON.stringify({})) {
+    res.redirect('/login');
+  }
   const templateVars = { 
-    urls: userURL, 
+    urls: urlDatabase, 
     user: users[req.cookies.users_id]
   };
 
-  console.log(users[req.cookies["user_id"]]);
+
   res.render('urls_index', templateVars);
 });
 
