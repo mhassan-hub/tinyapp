@@ -1,9 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+const {generateRandomString, getUserIdByEmail, urlsForUserID} = require('./helpers/helper_functions');
+
 const app = express();
 const PORT = 8080; // default port 8080
-const {generateRandomString, getUserIdByEmail, urlsForUserID} = require('./Helpers/helper_functions');
+const saltRounds = 10;
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -13,17 +16,17 @@ const users = {
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
-    password: "hi"
+    password: bcrypt.hashSync('hi', saltRounds)
   },
   "user2RandomID": {
     id: "user2RandomID", 
     email: "user2@example.com", 
-    password: "no"
+    password: bcrypt.hashSync("no", saltRounds)
   },
   "aJ48lW": {
     id: "aJ48lW", 
     email: "mhass405@gmail.com", 
-    password: "as"
+    password: bcrypt.hashSync("as", saltRounds)
   }
 };
 
@@ -46,9 +49,6 @@ app.get("/", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userURL = urlsForUserID(req.cookies.users_id, urlDatabase);
-  console.log(req.cookies.users_id);
-  console.log('----');
-  console.log(userURL);
 
   if (JSON.stringify(userURL) === JSON.stringify({})) {
     res.redirect('/login');
@@ -57,7 +57,6 @@ app.get("/urls", (req, res) => {
     urls: urlDatabase, 
     user: users[req.cookies.users_id]
   };
-
 
   res.render('urls_index', templateVars);
 });
@@ -101,7 +100,7 @@ app.post("/login", (req, res) => {
 
   let id = getUserIdByEmail(email, users);
 
-  if (id && password === users[id].password) {
+  if (id && bcrypt.compareSync(password, users[id].password)) {
     res.cookie("users_id", id);
     res.redirect("/urls");
   };
@@ -135,13 +134,18 @@ app.post("/register", (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
 
+
   if (email === '' || password === '') {
 
     res.statusCode = 400;
-    return res.send(`${res.statusCode}: This email already exists`);
+    return res.send(`${res.statusCode}: One of the fields required is empty`);
   };
 
-  users[id] = {id, email, password};
+  users[id] = {
+    id, 
+    email, 
+    password: bcrypt.hashSync(password, saltRounds)
+  };
 
   res.cookie("users_id", id);
   res.redirect(`/urls`);
