@@ -1,9 +1,12 @@
+
+// what the functions are and what thhs file does
+
 const generateRandomString = function() {
   return Math.random().toString(20).substr(2, 6);
 };
 
 const getUserIdByEmail = function (email, users) {
-  for (let id in users) {
+  for (const id in users) {
     if (email === users[id].email) {
       return id;
     }
@@ -12,9 +15,7 @@ const getUserIdByEmail = function (email, users) {
 
 const urlsForUserID = function (user_ID, urlDatabase) {
   const result = {};
-
   for (const url in urlDatabase) {
-
     if (urlDatabase[url].userID === user_ID) {
       result[url] = urlDatabase[url];
     }
