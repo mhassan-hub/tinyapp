@@ -14,10 +14,11 @@
             <button type="submit" class="btn btn-outline-danger">Logout</button>
           </form>
           <% } else {%>
-            <form class="form-inline" action="/login" method="POST">
-              <input type="email" name="email" placeholder="Email" style="width: 150px; margin: 0.5em">
-              <input type="password" name="password" placeholder="Password" style="width: 150px; margin: 0.5em">
-              <button type="submit" class="btn btn-outline-dark">Login</button>
+            <form class="form-inline" action="/login" method="GET">
+              <button type="submit" class="btn btn-light" style="width: 100px; margin-left: 1em; margin-right: 2em;">Login</button>
+            </form>
+            <form class="form-inline" action="/register" method="GET">
+              <button type="submit" class="btn btn-dark" style="width: 100px; margin: 0.25em">Register</button>
             </form>
          <% } %>
       </div>

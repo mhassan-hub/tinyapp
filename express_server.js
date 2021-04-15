@@ -18,30 +18,28 @@ const urlDatabase = {
 };
 
 const users = {
-//   "userRandomID": {
-//     id: "userRandomID", 
-//     email: "user@example.com", 
-//     password: "purple-monkey-dinosaur"
-//   },
-//  "user2RandomID": {
-//     id: "user2RandomID", 
-//     email: "user2@example.com", 
-//     password: "dishwasher-funk"
-//   }
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
+
+const getId = function (email, users) {
+  for (let id in users) {
+    if (email === users[id].email) {
+      return id;
+    }
+  }
 };
 
 app.get("/", (req, res) => {
   res.send("Hello!");
-});
-
-// not functional this is just to print urlDatabase
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-//not functional
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/urls", (req, res) => {
@@ -65,20 +63,24 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
-const getId = function (email, users) {
-  for (let key in users) {
-    if (email === users[key].email) {
-      return key;
-    }
-  }
-}
+app.get("/login", (req, res) => {
+  const templateVars = {user: users[req.cookies.users_id]};
+  res.render("urls_login", templateVars);
+});
 
 app.post("/login", (req, res) => {
+  // res.redirect("/login");
   let email = req.body.email
   let password = req.body.password;
 
-  res.cookie("user_id", getId(email, users));
-  res.redirect("/urls")
+  let id = getId(email, users)
+  // console.log(users[id].password);
+  if (id && password === users[id].password) {
+    res.cookie("users_id", id);
+    res.redirect("/urls");
+  }
+  res.statusCode = 403;
+  return res.send(`${res.statusCode}: please enter the correct email and password`)
 });
 
 app.post("/logout", (req, res) => {
@@ -90,19 +92,25 @@ app.get("/register", (req, res) => {
   
   const templateVars = { user: users[req.cookies.users_id] };
 
-  console.log(templateVars);
   res.render("urls_register", templateVars)
 });
 
 app.post("/register", (req, res) => {
+  // res.redirect(`/register`);
   let id = generateRandomString()
-  users[id] = {
-    id,
-    email: req.body.email,
-    password: req.body.password
+
+  let email = req.body.email;
+  let password = req.body.password;
+
+  if (email === '' || password === '') {
+    
+    console.log('hello');
+    res.statusCode = 400;
+    return res.send(`${res.statusCode}: This email already exists`)
   }
+  users[id] = {id, email, password}
+  // user = {id, email, password}
   res.cookie("users_id", id);
-  // urlDatabase[shortURL] = req.body.longURL;
   console.log(users);
   res.redirect(`/urls`);
 });
