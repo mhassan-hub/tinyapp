@@ -13,7 +13,7 @@
     </div>
       <div class="collapse navbar-collapse justify-content-end">
         <% if (user) { %>
-        <label for="email" style="width: 150px; margin: 0.5em">Logged in as <%= user.email %>! </label>
+        <label for="email" style="width: 150px; margin-left: 1em; margin-right: 2em">Logged in as <%= user.email %>! </label>
         <form class="form-inline" action="/logout" method="POST">
           <button type="submit" class="btn btn-danger">Logout</button>
         </form>
