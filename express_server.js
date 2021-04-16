@@ -45,33 +45,66 @@ const urlDatabase = {
   }
 };
 
+/*-------------/ROOT---------------*/
 app.get("/", (req, res) => {
   if (!req.session.users_id) {
-    res.redirect("/login");
+    return res.redirect("/login");
   };
   res.redirect('/urls');
-  res.send("Welcome to TinyApp V15.2.4! We are here to supply you with al your link shortening needs!");
 });
 
+/*-----------/ERROR/-------------*/
 app.get("/error", (req, res) => {
-  const templateVars = {user: users[req.session.users_id]};
+  const templateVars = {
+    error: 'Error status 403: Please Register or Login to access this feature or URL! ',
+    user: users[req.session.users_id]
+  };
 
   res.render('urls_error', templateVars);
 });
 
-app.post("/error", (req, res) => {
-  const templateVars = {user: users[req.session.users_id]};
+app.get("/error/400", (req, res) => {
+  const templateVars = {
+    error: 'Error status 400: Please fill out both the email and password fields',
+    user: users[req.session.users_id]
+  };
 
-  res.redirect('/register')
+  res.render('urls_error', templateVars);
+});
+
+app.get("/error/404", (req, res) => {
+  const templateVars = {
+    error: 'Error status 404: This page you are trying to accesss does not exist!',
+    user: users[req.session.users_id]
+  };
+
+  res.render('urls_error', templateVars);
+});
+
+app.get("/error/login", (req, res) => {
+  const templateVars = {
+    error: 'Error status 403: The email and password you entered are incorrect!',
+    user: users[req.session.users_id]
+  };
+
+  res.render('urls_error', templateVars);
 });
 
 /*-----------/URLS/-------------*/
 app.get("/urls", (req, res) => {
-  const userURL = urlsForUserID(req.session.users_id, urlDatabase);
-  const templateVars = { 
-    urls: userURL, 
-    user: users[req.session.users_id]
-  };
+  let templateVars =  {};
+
+  // If the user is logged in send 
+  if (req.session.users_id) {
+    const userURL = urlsForUserID(req.session.users_id, urlDatabase);
+    templateVars = { 
+      urls: userURL, 
+      user: users[req.session.users_id]
+    };
+  } else {
+    templateVars = {user: users[req.session.users_id]};
+    return res.redirect('/error')
+  }
 
   res.render('urls_index', templateVars);
 });
@@ -88,11 +121,10 @@ app.post("/urls", (req, res) => {
 
 /*-----------/URLS/NEW------------*/
 app.get("/urls/new", (req, res) => {
-  const templateVars = {user: users[req.session.users_id]};
-
   if (!req.session.users_id) {
-    res.redirect("/login");
+    return res.redirect("/login");
   };
+  const templateVars = {user: users[req.session.users_id]};
   res.render("urls_new", templateVars);
 });
 
@@ -100,6 +132,9 @@ app.get("/urls/new", (req, res) => {
 app.get("/login", (req, res) => {
   const templateVars = {user: users[req.session.users_id]};
 
+  if (req.session.users_id) {
+    return res.redirect('/urls');
+  }
   res.render("urls_login", templateVars);
 });
 
@@ -110,22 +145,27 @@ app.post("/login", (req, res) => {
 
   if (id && bcrypt.compareSync(password, users[id].password)) {
     req.session.users_id = id;
-    res.redirect("/urls");
-    return;
+    return res.redirect("/urls");
   };
-  res.statusCode = 403;
-  return res.send(`${res.statusCode}: please enter the correct email and password`)
+  res.redirect('/error/login');
 });
 
 /*-----------/LOGOUT------------*/
 app.post("/logout", (req, res) => {
-  req.session.users_id = null;
+  // deleting session cookie and unknown session.sig cookie
+  res.clearCookie('session');
+  res.clearCookie('session.sig');
   res.redirect("/urls");
 });
 
 /*-----------/REGISTER------------*/
 app.get("/register", (req, res) => {
   const templateVars = { user: users[req.session.users_id] };
+
+  //Login check
+  if (req.session.users_id) {
+    return res.redirect('/urls');
+  }
   res.render("urls_register", templateVars);
 });
 
@@ -135,8 +175,7 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
 
   if (email === '' || password === '') {
-    res.statusCode = 400;
-    return res.send(`${res.statusCode}: One of the fields required is empty`);
+    return res.redirect('/error/400')
   };
   users[id] = {
     id, 
@@ -147,7 +186,7 @@ app.post("/register", (req, res) => {
   res.redirect(`/urls`);
 });
 
-/*-----------/URLS/SHORTURL'S------------*/
+/*-----------/URLS/SHORTURL------------*/
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const templateVars = { 
@@ -156,24 +195,36 @@ app.get("/urls/:shortURL", (req, res) => {
     user: users[req.session.users_id] 
   };
 
+  if (!req.session.users_id) {
+    return res.redirect('/error');
+  };
+  if (!Object.keys(urlDatabase).includes(shortURL)) {
+    return res.redirect('/error/404'); 
+  }
   res.render('urls_show', templateVars);
 });
 
+//Redirecting the links of short Url's to the long URL equivilent
 app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  if (!Object.keys(urlDatabase).includes(shortURL)) {
+    return res.redirect('/error/404'); 
+  }
   const longURL = urlDatabase[req.params.shortURL].longURL;
-
   res.redirect(longURL);
 });
 
 app.post("/urls/:shortURL", (req, res) => { 
-  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
-  res.redirect(`/urls/${req.params.shortURL}`);
+  const shortURL = req.params.shortURL;
+  urlDatabase[shortURL].longURL = req.body.longURL;
+
+  res.redirect('/urls');
 });
 
 /*-------------/URLS/SHORTURL/DELETE-------------*/
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
-  res.redirect(`/urls/`);
+  res.redirect('/urls');
 });
 
 /*-----------LISTENING TO PORT 8080------------*/
