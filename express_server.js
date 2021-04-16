@@ -1,13 +1,16 @@
+/*-------------REQUIRES---------------*/
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const {generateRandomString, getUserIdByEmail, urlsForUserID} = require('./helpers');
 
+/*-------------CONSTANTS---------------*/
 const app = express();
 const PORT = 8080;
 const saltRounds = 10;
 
+/*-------------APP SETUP---------------*/
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
@@ -15,7 +18,8 @@ app.use(cookieSession({
 }));
 
 app.set("view engine", "ejs");
-//change emails to shorter for testing
+
+/*-------------TESTING DATABASE---------------*/
 const users = {
   "userRandomID": {
     id: "userRandomID", 
@@ -59,7 +63,6 @@ app.get("/error", (req, res) => {
     error: 'Error status 403: Please Register or Login to access this feature or URL! ',
     user: users[req.session.users_id]
   };
-
   res.render('urls_error', templateVars);
 });
 
@@ -68,7 +71,6 @@ app.get("/error/400", (req, res) => {
     error: 'Error status 400: Please fill out both the email and password fields',
     user: users[req.session.users_id]
   };
-
   res.render('urls_error', templateVars);
 });
 
@@ -77,7 +79,6 @@ app.get("/error/404", (req, res) => {
     error: 'Error status 404: This page you are trying to accesss does not exist!',
     user: users[req.session.users_id]
   };
-
   res.render('urls_error', templateVars);
 });
 
@@ -86,7 +87,6 @@ app.get("/error/login", (req, res) => {
     error: 'Error status 403: The email and password you entered are incorrect!',
     user: users[req.session.users_id]
   };
-
   res.render('urls_error', templateVars);
 });
 
@@ -94,8 +94,10 @@ app.get("/error/login", (req, res) => {
 app.get("/urls", (req, res) => {
   let templateVars =  {};
 
-  // If the user is logged in send 
+  // Login check - If the user is logged in send information, if not send error 
   if (req.session.users_id) {
+
+    // Checking for 
     const userURL = urlsForUserID(req.session.users_id, urlDatabase);
     templateVars = { 
       urls: userURL, 
@@ -121,6 +123,8 @@ app.post("/urls", (req, res) => {
 
 /*-----------/URLS/NEW------------*/
 app.get("/urls/new", (req, res) => {
+
+  // Login check
   if (!req.session.users_id) {
     return res.redirect("/login");
   };
@@ -132,6 +136,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/login", (req, res) => {
   const templateVars = {user: users[req.session.users_id]};
 
+  // Login check
   if (req.session.users_id) {
     return res.redirect('/urls');
   }
@@ -141,8 +146,11 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+  // Returns User id if email matches our database
   const id = getUserIdByEmail(email, users);
 
+  // If id exists and if passwords match login user
   if (id && bcrypt.compareSync(password, users[id].password)) {
     req.session.users_id = id;
     return res.redirect("/urls");
@@ -152,6 +160,7 @@ app.post("/login", (req, res) => {
 
 /*-----------/LOGOUT------------*/
 app.post("/logout", (req, res) => {
+
   // deleting session cookie and unknown session.sig cookie
   res.clearCookie('session');
   res.clearCookie('session.sig');
@@ -195,22 +204,26 @@ app.get("/urls/:shortURL", (req, res) => {
     user: users[req.session.users_id] 
   };
 
+  // Login check
   if (!req.session.users_id) {
     return res.redirect('/error');
   };
+
+  // Checking if shortURL is part of urlDatabase obj
   if (!Object.keys(urlDatabase).includes(shortURL)) {
     return res.redirect('/error/404'); 
-  }
+  };
   res.render('urls_show', templateVars);
 });
 
-//Redirecting the links of short Url's to the long URL equivilent
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[req.params.shortURL].longURL;
+
+  // Checking if shortURL is part of urlDatabase obj
   if (!Object.keys(urlDatabase).includes(shortURL)) {
     return res.redirect('/error/404'); 
   }
-  const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
