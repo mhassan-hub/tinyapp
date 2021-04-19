@@ -1,9 +1,10 @@
 /*-------------REQUIRES---------------*/
-const express = require("express");
-const bodyParser = require("body-parser");
+const express = require('express');
+const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const {generateRandomString, getUserIdByEmail, urlsForUserID} = require('./helpers');
+const {users, urlDatabase} = require('./database')
 
 /*-------------CONSTANTS---------------*/
 const app = express();
@@ -18,36 +19,6 @@ app.use(cookieSession({
 }));
 
 app.set("view engine", "ejs");
-
-/*-------------TESTING DATABASE---------------*/
-const users = {
-  "userRandomID": {
-    id: "userRandomID", 
-    email: "a@a.com", 
-    password: bcrypt.hashSync('aa', saltRounds)
-  },
-  "user2RandomID": {
-    id: "user2RandomID", 
-    email: "abed@community.com", 
-    password: bcrypt.hashSync("no", saltRounds)
-  },
-  "aJ48lW": {
-    id: "aJ48lW", 
-    email: "troy@community.com", 
-    password: bcrypt.hashSync("as", saltRounds)
-  }
-};
-
-const urlDatabase = {
-  "b2xVn2": { 
-    longURL: "http://www.lighthouselabs.ca", 
-    userID: "aJ48lW"
-  },
-  "9sm5xK": { 
-    longURL: "http://www.google.com", 
-    userID: "aJ48lW"
-  }
-};
 
 /*-------------/ROOT---------------*/
 app.get("/", (req, res) => {
@@ -97,7 +68,7 @@ app.get("/urls", (req, res) => {
   // Login check - If the user is logged in send information, if not send error 
   if (req.session.users_id) {
 
-    // Checking for 
+    // Associating all the URLs in the database that has the logged in user's id
     const userURL = urlsForUserID(req.session.users_id, urlDatabase);
     templateVars = { 
       urls: userURL, 
@@ -146,11 +117,8 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-
-  // Returns User id if email matches our database
   const id = getUserIdByEmail(email, users);
 
-  // If id exists and if passwords match login user
   if (id && bcrypt.compareSync(password, users[id].password)) {
     req.session.users_id = id;
     return res.redirect("/urls");
